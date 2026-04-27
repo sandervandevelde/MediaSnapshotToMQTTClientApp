@@ -8,7 +8,7 @@ namespace MediaSnapshotToMQTTClientApp
     {
         static async Task Main(string[] args)
         {
-            Console.WriteLine("Hello, MQTT Media snapshot!");
+            Console.WriteLine("Hello, MQTT Media snapshot connector tracker!");
 
             // Construct MQTT client
             var mqttFactory = new MqttClientFactory();
@@ -25,7 +25,7 @@ namespace MediaSnapshotToMQTTClientApp
 
             mqttClient.ApplicationMessageReceivedAsync += async e =>
             {
-                Console.WriteLine("### RECEIVED APPLICATION MESSAGE ###");
+                Console.WriteLine($"### RECEIVED APPLICATION MESSAGE (at {DateTime.Now}) ###");
                 Console.WriteLine($"+ Topic = {e.ApplicationMessage.Topic}");
 
                 try
@@ -63,7 +63,7 @@ namespace MediaSnapshotToMQTTClientApp
             await mqttClient.SubscribeAsync(
                 new MqttTopicFilter
                 {
-                    Topic = "azure-iot-operations/data/#"
+                    Topic = "media/asset/161/snapshot/#" //"azure-iot-operations/data/#"
                 }
             );
 
@@ -71,15 +71,25 @@ namespace MediaSnapshotToMQTTClientApp
 
             Console.WriteLine("Hit a key to exit.");
 
-            RemoveOlderImagesToSaveDiskspace();
+            Console.WriteLine("First, let's clean up older snapshot files to save disk space...");
+
+            RemoveOlderImagesToSaveDiskspace(true);
+
+            Console.WriteLine("Cleanup complete.");
 
             Console.ReadKey();
         }
 
-        private static void RemoveOlderImagesToSaveDiskspace()
+        private static void RemoveOlderImagesToSaveDiskspace(bool onstartup = false)
         {
             // remove all JPEG files older than 60 minute
             var files = Directory.GetFiles(Directory.GetCurrentDirectory(), "snapshot_*.jpg");
+
+            if (onstartup)
+            {
+                Console.WriteLine($"Found {files.Length} snapshot files in '{Directory.GetCurrentDirectory()}'. These are deleted when older than 60 miniutes");
+            }
+
             foreach (var file in files)
             {
                 var creationTime = File.GetCreationTime(file);
